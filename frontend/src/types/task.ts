@@ -54,3 +54,5 @@ export interface ApiError {
   message: string;
 }
 
+export type TaskFilter = "all" | "pending" | "completed";
+
