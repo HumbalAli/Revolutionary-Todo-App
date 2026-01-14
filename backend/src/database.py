@@ -4,9 +4,6 @@ from typing import Generator
 from .models.user import User
 from .models.task import Task
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Get database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./todo_app.db")
