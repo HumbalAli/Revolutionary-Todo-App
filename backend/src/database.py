@@ -26,5 +26,10 @@ engine = create_engine(
 )
 
 def get_session() -> Generator[Session, None, None]:
-    with Session(engine) as session:
-        yield session
+    try:
+        with Session(engine) as session:
+            yield session
+    except Exception as e:
+        import logging
+        logging.error(f"Database session error: {e}")
+        raise
