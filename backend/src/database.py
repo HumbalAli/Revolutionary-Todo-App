@@ -21,8 +21,10 @@ engine = create_engine(
     pool_pre_ping=True,    # Verify connections before use
     pool_recycle=300,      # Recycle connections every 5 minutes
     poolclass=QueuePool,
-    pool_size=10,          # Increased pool size for production
-    max_overflow=20        # Increased overflow for production
+    pool_size=5,           # Reduced pool size for Railway
+    max_overflow=10,       # Reduced overflow for Railway
+    pool_timeout=20,       # Add connection timeout
+    pool_reset_on_return='commit'  # Reset connection on return
 )
 
 def get_session() -> Generator[Session, None, None]:
