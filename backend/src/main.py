@@ -10,7 +10,11 @@ import os
 async def lifespan(app: FastAPI):
     # Create tables on startup
     from sqlmodel import SQLModel
-    SQLModel.metadata.create_all(engine)
+    try:
+        SQLModel.metadata.create_all(engine)
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to create database tables: {e}")
     yield
 
 app = FastAPI(
