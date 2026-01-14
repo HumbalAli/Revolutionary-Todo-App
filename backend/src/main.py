@@ -5,9 +5,6 @@ from .database import engine
 from .models.user import User
 from .models.task import Task
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

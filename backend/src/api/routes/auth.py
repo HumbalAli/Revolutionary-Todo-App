@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from ...auth import create_access_token, create_test_user
-from ...database import get_session
-from ...models.user import User
+from ..auth import create_access_token, create_test_user
+from ..database import get_session
+from ..models.user import User
 
 router = APIRouter()
 
@@ -59,7 +59,7 @@ async def register_user(
             detail=f"Error creating user: {str(e)}"
         )
 
-from ...auth import get_current_user
+from ..auth import get_current_user
 
 # Get current user info
 @router.get("/auth/me")
