@@ -1,6 +1,11 @@
 import os
-from backend.minimal_app import app
+import sys
 import uvicorn
+
+# Add the backend directory to Python path to import the minimal app
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+
+from minimal_app import app
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
