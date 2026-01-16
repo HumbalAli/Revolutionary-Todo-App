@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from .database import engine
-from .models.user import User
-from .models.task import Task
+from backend.src.database import engine
+from backend.src.models import User, Task
 import os
 
 @asynccontextmanager
@@ -29,7 +28,7 @@ app.add_middleware(
 )
 
 # Import and include routers
-from .api.routes import tasks, auth
+from backend.src.api.routes import tasks, auth
 
 app.include_router(tasks.router, prefix="/api", tags=["tasks"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])

@@ -1,7 +1,21 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
-from backend.src.models.user import User
+
+
+class UserBase(SQLModel):
+    email: str = Field(unique=True, nullable=False, max_length=255)
+    name: str = Field(nullable=False, max_length=255)
+
+
+class User(UserBase, table=True):
+    """
+    User model representing an authenticated user with associated tasks.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    tasks: List["Task"] = Relationship(back_populates="user")
 
 
 class TaskBase(SQLModel):
@@ -21,9 +35,3 @@ class Task(TaskBase, table=True):
 
     # Relationship to User
     user: Optional[User] = Relationship(back_populates="tasks")
-
-
-# Add the tasks relationship to User model
-def model_rebuild():
-    from backend.src.models.user import User
-    User.model_rebuild()

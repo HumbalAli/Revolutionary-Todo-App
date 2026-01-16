@@ -16,3 +16,10 @@ class User(UserBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     tasks: List["Task"] = Relationship(back_populates="user")
+
+
+# Add the tasks relationship to Task model (after both classes are defined to handle circular import)
+def model_rebuild():
+    from backend.src.models.task import Task
+    User.__annotations__['tasks'] = List["Task"]
+    User.tasks = Relationship(back_populates="user")

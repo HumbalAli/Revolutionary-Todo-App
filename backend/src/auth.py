@@ -5,8 +5,8 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 import os
-from .database import get_session
-from .models.user import User
+from backend.src.database import get_session
+from backend.src.models import User
 
 # Security scheme for API
 security = HTTPBearer()

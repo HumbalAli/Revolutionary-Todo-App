@@ -1,8 +1,7 @@
 from sqlmodel import create_engine, Session
 from sqlalchemy import MetaData
 from typing import Generator
-from .models.user import User
-from .models.task import Task
+from backend.src.models import User, Task
 import os
 
 # Get database URL from environment variable
