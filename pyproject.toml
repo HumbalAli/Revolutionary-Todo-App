@@ -1,9 +1,14 @@
 [project]
-name = "todo-console-app"
+name = "revolutionary-todo-app"
 version = "0.1.0"
-description = "In-memory Python Console Todo Application - Phase I"
+description = "Todo API application with FastAPI"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-multipart"
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
