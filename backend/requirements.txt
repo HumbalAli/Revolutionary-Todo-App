@@ -1,12 +1,4 @@
 fastapi
 uvicorn[standard]
-sqlmodel
 pydantic
-pydantic-extra-types
 python-multipart
-better-exceptions
-python-jose[cryptography]
-passlib[bcrypt]
-python-dotenv
-alembic
-psycopg2-binary
