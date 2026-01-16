@@ -1,1 +1,1 @@
-web: cd backend && python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT --reload=false --workers 1 --timeout-keep-alive 30 --proxy-headers --forwarded-allow-ips="*" --log-level info
+web: cd backend && python -m uvicorn minimal_app:app --host 0.0.0.0 --port $PORT --reload=false --workers 1 --timeout-keep-alive 30 --proxy-headers --forwarded-allow-ips="*" --log-level info
