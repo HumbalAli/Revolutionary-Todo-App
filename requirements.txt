@@ -4,3 +4,4 @@ pydantic
 python-multipart
 sqlmodel
 python-jose[cryptography]
+psycopg2-binary
