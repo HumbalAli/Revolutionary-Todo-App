@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(where claude)",
+      "Bash(claude.cmd --version)",
+      "Bash(claude.cmd mcp --help)",
+      "Bash(claude.cmd mcp list)",
+      "Bash(claude.cmd mcp add @modelcontextprotocol/server-python npx -- @modelcontextprotocol/server-python)",
+      "Bash(claude.cmd mcp add python-server npx -- @modelcontextprotocol/server-python)",
+      "Bash(claude.cmd mcp add node-server npx -- @modelcontextprotocol/server-node)",
+      "Bash(claude.cmd mcp add mysql-server npx -- @modelcontextprotocol/server-mysql)",
+      "Bash(claude.cmd mcp remove k8s-mcp)",
+      "Bash(claude.cmd mcp remove fetch)"
+    ]
+  }
+}
