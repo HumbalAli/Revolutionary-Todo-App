@@ -5,10 +5,17 @@ from backend.src.database import engine
 from backend.src.models import User, Task
 import os
 
+from sqlmodel import SQLModel
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Don't create tables on startup to prevent blocking
-    # Tables will be created when first needed
+    # Create database tables on startup
+    try:
+        SQLModel.metadata.create_all(bind=engine)
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+        # Don't raise the exception to prevent blocking startup
     yield
 
 app = FastAPI(
