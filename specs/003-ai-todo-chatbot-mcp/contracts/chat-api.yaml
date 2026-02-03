@@ -1,0 +1,319 @@
+openapi: 3.0.0
+info:
+  title: Todo App Chat API
+  description: API for AI-powered chatbot functionality
+  version: 1.0.0
+servers:
+  - url: https://api.todo-app.com/v1
+    description: Production server
+  - url: https://staging-api.todo-app.com/v1
+    description: Staging server
+
+paths:
+  /chat/{user_id}/messages:
+    post:
+      summary: Send a message to the AI chatbot
+      description: Process user input and return AI response with any task operations
+      operationId: sendMessage
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the user sending the message
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: The user's message to the chatbot
+                  example: "Add a task to buy groceries"
+                conversation_id:
+                  type: string
+                  format: uuid
+                  description: Optional conversation ID to continue existing conversation
+                  example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+      responses:
+        '200':
+          description: Successful response from AI chatbot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    description: The AI's response to the user
+                    example: "I've added the task 'buy groceries' for you."
+                  conversation_id:
+                    type: string
+                    format: uuid
+                    description: The conversation ID (new or existing)
+                    example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                  task_operations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskOperationResult'
+                  suggested_actions:
+                    type: array
+                    items:
+                      type: string
+                    description: Suggested follow-up actions
+                    example: ["View your tasks", "Add another task"]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /conversations/{user_id}:
+    get:
+      summary: Get user's conversations
+      description: Retrieve a list of conversations for a specific user
+      operationId: getUserConversations
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the user
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          required: false
+          description: Number of conversations to return
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          description: Number of conversations to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of user's conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  total:
+                    type: integer
+                    description: Total number of conversations
+                  has_more:
+                    type: boolean
+                    description: Whether there are more conversations available
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /conversations/{conversation_id}:
+    get:
+      summary: Get conversation details
+      description: Retrieve a specific conversation and its message history
+      operationId: getConversation
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: The ID of the conversation
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation details with message history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a conversation
+      description: Permanently delete a conversation and all its messages
+      operationId: deleteConversation
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: The ID of the conversation to delete
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Conversation successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the conversation
+        user_id:
+          type: integer
+          format: int64
+          description: Reference to the user who owns the conversation
+        title:
+          type: string
+          description: Auto-generated title based on first message or purpose
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of conversation creation
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of last message/activity
+        status:
+          type: string
+          enum: [active, archived]
+          description: Current state of the conversation
+          default: active
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the message
+        conversation_id:
+          type: string
+          format: uuid
+          description: Reference to the parent conversation
+        sender:
+          type: string
+          enum: [user, ai]
+          description: Indicates message origin
+        content:
+          type: string
+          description: The actual message content
+          maxLength: 10000
+        role:
+          type: string
+          enum: [user, assistant, system]
+          description: Role in conversation (for AI context)
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of message creation
+        metadata:
+          type: object
+          description: Additional data for AI context
+          additionalProperties: true
+
+    TaskOperationResult:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: [add, list, complete, delete, update]
+          description: Type of task operation performed
+        success:
+          type: boolean
+          description: Whether the operation was successful
+        message:
+          type: string
+          description: Human-readable message about the operation
+        task_id:
+          type: integer
+          format: int64
+          description: ID of the affected task (if applicable)
+        affected_tasks_count:
+          type: integer
+          description: Number of tasks affected (for list operations)
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth system
+
+security:
+  - bearerAuth: []

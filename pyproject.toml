@@ -1,0 +1,18 @@
+[project]
+name = "todo-app"
+version = "0.1.0"
+description = "Todo API application with FastAPI"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-multipart"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
