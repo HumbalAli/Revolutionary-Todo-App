@@ -1,0 +1,73 @@
+# API Contract: Todo Chatbot Services
+
+## Overview
+This document describes the API contracts for the Todo Chatbot application services when deployed in Kubernetes.
+
+## Backend Service API
+
+### Base URL
+`http://todo-backend-service:8000` (internal) or `[ingress-url]/api` (external)
+
+### Endpoints
+
+#### GET /health
+**Description**: Health check endpoint for Kubernetes liveness/readiness probes
+**Response**:
+- 200: `{"status": "healthy", "timestamp": "2026-02-06T10:00:00Z"}`
+
+#### GET /api/v1/tasks
+**Description**: Retrieve all tasks
+**Response**:
+- 200: `{"tasks": [{"id": "1", "title": "Sample task", "completed": false}]}`
+
+#### POST /api/v1/tasks
+**Description**: Create a new task
+**Request Body**: `{"title": "New task", "completed": false}`
+**Response**:
+- 201: `{"id": "2", "title": "New task", "completed": false}`
+
+#### PUT /api/v1/tasks/{id}
+**Description**: Update a task
+**Request Body**: `{"title": "Updated task", "completed": true}`
+**Response**:
+- 200: `{"id": "1", "title": "Updated task", "completed": true}`
+
+#### DELETE /api/v1/tasks/{id}
+**Description**: Delete a task
+**Response**:
+- 204: No content
+
+#### POST /api/v1/chat/completions
+**Description**: Chat completion endpoint for the AI chatbot
+**Request Body**: `{"messages": [{"role": "user", "content": "What are my tasks?"}]}`
+**Response**:
+- 200: `{"response": "You have 2 tasks: Complete project, Review code"}`
+
+## Frontend Service API
+
+### Base URL
+`http://todo-frontend-service:3000` (internal) or `[ingress-url]` (external)
+
+### Endpoints
+
+#### GET /
+**Description**: Main application page
+**Response**:
+- 200: HTML page with React application
+
+#### GET /health
+**Description**: Health check endpoint for Kubernetes liveness/readiness probes
+**Response**:
+- 200: `{"status": "healthy", "timestamp": "2026-02-06T10:00:00Z"}`
+
+## Kubernetes Service Discovery
+
+### Internal Communication
+- Frontend accesses backend via: `http://todo-backend-service:8000/api`
+- Backend may access other services via their service names
+
+### Environment Variables
+Services should be configured with:
+- `BACKEND_SERVICE_URL`: URL for backend service (default: http://todo-backend-service:8000)
+- `DATABASE_URL`: Connection string for database
+- `OPENAI_API_KEY`: API key for OpenAI (stored in Kubernetes secret)

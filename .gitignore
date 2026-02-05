@@ -85,3 +85,21 @@ htmlcov/
 
 # AI Agent Memory
 .agent/
+
+# Large binary files
+*.exe
+*.zip
+*.tar
+*.gz
+*.bz2
+*.dmg
+*.iso
+*.img
+*.msi
+*.deb
+*.rpm
+*.pkg
+*.whl
+*.dll
+*.so
+*.dylib
