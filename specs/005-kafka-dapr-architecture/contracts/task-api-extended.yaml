@@ -1,0 +1,616 @@
+openapi: 3.0.3
+info:
+  title: Todo App - Advanced Task API
+  description: Extended task management API with advanced features (Phase V)
+  version: 2.0.0
+  contact:
+    name: Todo App Team
+
+servers:
+  - url: http://localhost:8000/api/v2
+    description: Local development
+  - url: https://todo-app.example.com/api/v2
+    description: Production
+
+paths:
+  /tasks:
+    get:
+      summary: List tasks with advanced filtering
+      description: Retrieve tasks with support for search, filter, sort
+      operationId: listTasks
+      parameters:
+        - name: search
+          in: query
+          description: Full-text search on title and description
+          schema:
+            type: string
+          example: "hackathon project"
+        - name: priority
+          in: query
+          description: Filter by priority (comma-separated for multiple)
+          schema:
+            type: string
+            enum: [HIGH, MEDIUM, LOW]
+          example: "HIGH,MEDIUM"
+        - name: status
+          in: query
+          description: Filter by status (comma-separated for multiple)
+          schema:
+            type: string
+            enum: [pending, in_progress, completed]
+          example: "pending,in_progress"
+        - name: tags
+          in: query
+          description: Filter by tags (comma-separated, AND logic)
+          schema:
+            type: string
+          example: "work,urgent"
+        - name: due_before
+          in: query
+          description: Filter tasks due before this date
+          schema:
+            type: string
+            format: date-time
+          example: "2026-02-28T23:59:59Z"
+        - name: due_after
+          in: query
+          description: Filter tasks due after this date
+          schema:
+            type: string
+            format: date-time
+          example: "2026-02-01T00:00:00Z"
+        - name: is_recurring
+          in: query
+          description: Filter recurring tasks
+          schema:
+            type: boolean
+          example: true
+        - name: sort_by
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [due_date, priority, title, created_at, updated_at]
+            default: created_at
+        - name: sort_order
+          in: query
+          description: Sort direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          description: Maximum results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of tasks matching filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdvancedTask'
+                  total:
+                    type: integer
+                    description: Total matching tasks (before pagination)
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a new task
+      description: Create task with advanced properties
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedTask'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{task_id}:
+    get:
+      summary: Get task by ID
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedTask'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      summary: Update task
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedTask'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Delete task
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '204':
+          description: Task deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{task_id}/complete:
+    post:
+      summary: Mark task as complete
+      description: Completes task and triggers recurring task generation if applicable
+      operationId: completeTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task completed, returns next occurrence if recurring
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completed_task:
+                    $ref: '#/components/schemas/AdvancedTask'
+                  next_occurrence:
+                    $ref: '#/components/schemas/AdvancedTask'
+                    nullable: true
+                    description: Next occurrence if this was a recurring task
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{task_id}/events:
+    get:
+      summary: Get task event history
+      description: Retrieve audit log of all events for a task
+      operationId: getTaskEvents
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: List of task events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskEvent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tasks/{task_id}/reminders:
+    get:
+      summary: Get reminders for task
+      operationId: getTaskReminders
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: List of reminders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reminder'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /profile:
+    get:
+      summary: Get user profile
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: User profile with preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      summary: Update user profile
+      operationId: updateUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  schemas:
+    AdvancedTask:
+      type: object
+      required:
+        - id
+        - user_id
+        - title
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          default: []
+        recurrence_rule:
+          type: string
+          nullable: true
+          description: RFC 5545 RRule format
+          example: "FREQ=WEEKLY;BYDAY=MO,WE,FR;COUNT=10"
+        recurrence_parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        reminder_offset_minutes:
+          type: integer
+          minimum: 1
+          nullable: true
+          default: 60
+        is_recurring:
+          type: boolean
+          default: false
+        recurrence_count:
+          type: integer
+          nullable: true
+          description: Current occurrence number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+        tags:
+          type: array
+          items:
+            type: string
+        recurrence_rule:
+          type: string
+          description: RFC 5545 RRule format
+        reminder_offset_minutes:
+          type: integer
+          minimum: 1
+          default: 60
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        recurrence_rule:
+          type: string
+          nullable: true
+        reminder_offset_minutes:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    TaskEvent:
+      type: object
+      required:
+        - id
+        - event_type
+        - schema_version
+        - timestamp
+        - user_id
+        - task_id
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          example: "task.created"
+        schema_version:
+          type: string
+          example: "1.0"
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        data:
+          type: object
+          description: Event-specific payload
+
+    Reminder:
+      type: object
+      required:
+        - id
+        - task_id
+        - user_id
+        - scheduled_time
+        - status
+        - delivery_method
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        scheduled_time:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, SENT, FAILED, CANCELLED]
+        delivery_method:
+          type: string
+          enum: [EMAIL, PUSH, WEBSOCKET]
+        retry_count:
+          type: integer
+          default: 0
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - user_id
+        - default_reminder_offset_minutes
+        - timezone
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        default_priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+          nullable: true
+        default_reminder_offset_minutes:
+          type: integer
+          minimum: 1
+          default: 60
+        default_tags:
+          type: array
+          items:
+            type: string
+          default: []
+        notification_preferences:
+          type: object
+          description: Delivery method preferences
+        timezone:
+          type: string
+          default: "UTC"
+          example: "America/New_York"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        default_priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+          nullable: true
+        default_reminder_offset_minutes:
+          type: integer
+          minimum: 1
+        default_tags:
+          type: array
+          items:
+            type: string
+        notification_preferences:
+          type: object
+        timezone:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  parameters:
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      description: UUID of the task
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

@@ -1,0 +1,524 @@
+kafka_events:
+  version: "1.0"
+  description: "Kafka event schemas for Todo App Phase V"
+
+  topics:
+    task-events:
+      description: "Task lifecycle events for audit log and downstream processing"
+      partition_key: "user_id"
+      retention_ms: 604800000  # 7 days
+      events:
+        - name: "task.created"
+          description: "New task created"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.created"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - title
+                  - status
+                properties:
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, in_progress, completed]
+                  due_date:
+                    type: string
+                    format: date-time
+                  priority:
+                    type: string
+                    enum: [HIGH, MEDIUM, LOW]
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                  is_recurring:
+                    type: boolean
+                  recurrence_rule:
+                    type: string
+          example:
+            event_type: "task.created"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T12:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              title: "Complete hackathon project"
+              description: "Finish all 5 phases"
+              status: "pending"
+              due_date: "2026-02-28T23:59:59Z"
+              priority: "HIGH"
+              tags: ["hackathon", "urgent"]
+              is_recurring: false
+              recurrence_rule: null
+
+        - name: "task.updated"
+          description: "Task properties modified"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.updated"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - changes
+                properties:
+                  changes:
+                    type: object
+                    description: "Changed fields with before/after values"
+                  previous_state:
+                    type: object
+                  new_state:
+                    type: object
+          example:
+            event_type: "task.updated"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T13:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              changes:
+                status:
+                  old: "pending"
+                  new: "in_progress"
+                priority:
+                  old: "MEDIUM"
+                  new: "HIGH"
+
+        - name: "task.completed"
+          description: "Task marked as complete"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.completed"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - completed_at
+                properties:
+                  completed_at:
+                    type: string
+                    format: date-time
+                  is_recurring:
+                    type: boolean
+                  next_occurrence_id:
+                    type: string
+                    format: uuid
+                    description: "ID of next occurrence if recurring"
+          example:
+            event_type: "task.completed"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T14:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              completed_at: "2026-02-07T14:00:00Z"
+              is_recurring: true
+              next_occurrence_id: "660e8400-e29b-41d4-a716-446655440002"
+
+        - name: "task.deleted"
+          description: "Task permanently deleted"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.deleted"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                properties:
+                  deleted_at:
+                    type: string
+                    format: date-time
+                  reason:
+                    type: string
+          example:
+            event_type: "task.deleted"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T15:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              deleted_at: "2026-02-07T15:00:00Z"
+              reason: "User requested deletion"
+
+    reminders:
+      description: "Reminder notifications for tasks with due dates"
+      partition_key: "user_id"
+      retention_ms: 86400000  # 1 day
+      events:
+        - name: "reminder.due"
+          description: "Reminder needs to be sent for a task"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - reminder_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "reminder.due"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              reminder_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - task_title
+                  - due_date
+                  - scheduled_time
+                  - delivery_method
+                properties:
+                  task_title:
+                    type: string
+                  due_date:
+                    type: string
+                    format: date-time
+                  scheduled_time:
+                    type: string
+                    format: date-time
+                  delivery_method:
+                    type: string
+                    enum: [EMAIL, PUSH, WEBSOCKET]
+                  priority:
+                    type: string
+                    enum: [HIGH, MEDIUM, LOW]
+          example:
+            event_type: "reminder.due"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T11:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            reminder_id: "770e8400-e29b-41d4-a716-446655440003"
+            data:
+              task_title: "Complete hackathon project"
+              due_date: "2026-02-07T12:00:00Z"
+              scheduled_time: "2026-02-07T11:00:00Z"
+              delivery_method: "EMAIL"
+              priority: "HIGH"
+
+        - name: "reminder.sent"
+          description: "Reminder successfully delivered"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - reminder_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "reminder.sent"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              reminder_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - sent_at
+                  - delivery_method
+                properties:
+                  sent_at:
+                    type: string
+                    format: date-time
+                  delivery_method:
+                    type: string
+                    enum: [EMAIL, PUSH, WEBSOCKET]
+                  retry_count:
+                    type: integer
+          example:
+            event_type: "reminder.sent"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T11:01:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            reminder_id: "770e8400-e29b-41d4-a716-446655440003"
+            data:
+              sent_at: "2026-02-07T11:01:00Z"
+              delivery_method: "EMAIL"
+              retry_count: 0
+
+    task-updates:
+      description: "Real-time task property changes for synchronization"
+      partition_key: "user_id"
+      retention_ms: 86400000  # 1 day
+      events:
+        - name: "task.priority_changed"
+          description: "Task priority modified"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.priority_changed"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                required:
+                  - old_priority
+                  - new_priority
+                properties:
+                  old_priority:
+                    type: string
+                    enum: [HIGH, MEDIUM, LOW]
+                  new_priority:
+                    type: string
+                    enum: [HIGH, MEDIUM, LOW]
+          example:
+            event_type: "task.priority_changed"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T12:30:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              old_priority: "MEDIUM"
+              new_priority: "HIGH"
+
+        - name: "task.due_date_changed"
+          description: "Task due date modified"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.due_date_changed"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                properties:
+                  old_due_date:
+                    type: string
+                    format: date-time
+                  new_due_date:
+                    type: string
+                    format: date-time
+          example:
+            event_type: "task.due_date_changed"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T13:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              old_due_date: "2026-02-28T23:59:59Z"
+              new_due_date: "2026-03-15T23:59:59Z"
+
+        - name: "task.recurrence_updated"
+          description: "Task recurrence pattern changed"
+          schema:
+            type: object
+            required:
+              - event_type
+              - schema_version
+              - timestamp
+              - user_id
+              - task_id
+              - data
+            properties:
+              event_type:
+                type: string
+                const: "task.recurrence_updated"
+              schema_version:
+                type: string
+                const: "1.0"
+              timestamp:
+                type: string
+                format: date-time
+              user_id:
+                type: string
+                format: uuid
+              task_id:
+                type: string
+                format: uuid
+              data:
+                type: object
+                properties:
+                  old_recurrence_rule:
+                    type: string
+                  new_recurrence_rule:
+                    type: string
+          example:
+            event_type: "task.recurrence_updated"
+            schema_version: "1.0"
+            timestamp: "2026-02-07T14:00:00Z"
+            user_id: "550e8400-e29b-41d4-a716-446655440000"
+            task_id: "660e8400-e29b-41d4-a716-446655440001"
+            data:
+              old_recurrence_rule: "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+              new_recurrence_rule: "FREQ=WEEKLY;BYDAY=MO,WE,FR,SU"
+
+  consumer_groups:
+    - name: "audit-log-service"
+      description: "Consumes task-events for audit logging"
+      subscribed_topics:
+        - task-events
+
+    - name: "recurring-task-service"
+      description: "Consumes task.completed events to generate next occurrences"
+      subscribed_topics:
+        - task-events
+
+    - name: "reminder-service"
+      description: "Consumes reminder.due events to send notifications"
+      subscribed_topics:
+        - reminders
+
+    - name: "realtime-sync-service"
+      description: "Consumes task-updates for WebSocket broadcast"
+      subscribed_topics:
+        - task-updates

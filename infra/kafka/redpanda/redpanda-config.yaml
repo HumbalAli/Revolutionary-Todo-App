@@ -1,0 +1,75 @@
+apiVersion: cluster.redpanda.com/v1alpha1
+kind: Redpanda
+metadata:
+  name: todo-redpanda
+  namespace: redpanda
+spec:
+  chartRef:
+    chartVersion: 5.x.x
+  clusterSpec:
+    statefulset:
+      replicas: 3
+    resources:
+      cpu:
+        cores: 1
+      memory:
+        container:
+          max: 2Gi
+    storage:
+      persistentVolume:
+        enabled: true
+        size: 10Gi
+    tls:
+      enabled: false
+    external:
+      enabled: false
+    auth:
+      sasl:
+        enabled: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redpanda-topics-config
+  namespace: redpanda
+data:
+  topics.yaml: |
+    topics:
+      - name: task-events
+        partitions: 3
+        replicationFactor: 3
+        config:
+          retention.ms: 604800000
+          cleanup.policy: delete
+      - name: reminders
+        partitions: 3
+        replicationFactor: 3
+        config:
+          retention.ms: 86400000
+          cleanup.policy: delete
+      - name: task-updates
+        partitions: 3
+        replicationFactor: 3
+        config:
+          retention.ms: 86400000
+          cleanup.policy: delete
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-topics
+  namespace: redpanda
+spec:
+  template:
+    spec:
+      containers:
+        - name: rpk
+          image: vectorized/redpanda:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              rpk topic create task-events --brokers todo-redpanda-0.todo-redpanda.redpanda.svc.cluster.local:9092 -p 3 -r 3
+              rpk topic create reminders --brokers todo-redpanda-0.todo-redpanda.redpanda.svc.cluster.local:9092 -p 3 -r 3
+              rpk topic create task-updates --brokers todo-redpanda-0.todo-redpanda.redpanda.svc.cluster.local:9092 -p 3 -r 3
+      restartPolicy: OnFailure

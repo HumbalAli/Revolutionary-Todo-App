@@ -1,0 +1,134 @@
+dapr_components:
+  version: "1.0"
+  description: "Dapr component specifications for Todo App Phase V"
+
+  components:
+    pubsub:
+      - name: "kafka-pubsub"
+        type: "pubsub.kafka"
+        version: "v1"
+        metadata:
+          brokers: "${KAFKA_BROKERS}"  # e.g., "localhost:9092" or "redpanda.example.com:9092"
+          authType: "none"  # or "password" for SASL, "certificate" for mTLS
+          consumerGroup: "todo-app-backend"
+          clientId: "todo-backend"
+          maxMessageBytes: "1048576"  # 1MB
+          version: "2.8.0"  # Kafka protocol version
+        scopes:
+          - "todo-backend"
+        description: "Kafka pub/sub for event-driven architecture"
+        topics:
+          - task-events
+          - reminders
+          - task-updates
+
+    statestore:
+      - name: "statestore"
+        type: "state.postgresql"
+        version: "v1"
+        metadata:
+          connectionString: "${DATABASE_URL}"  # Neon PostgreSQL connection string
+          tableName: "dapr_state"
+          keyPrefix: "todo-app"
+          actorStateStore: "false"
+          timeoutInSeconds: "30"
+        scopes:
+          - "todo-backend"
+        description: "PostgreSQL state store for conversation context"
+        features:
+          - "eTag"
+          - "ttl"
+          - "transactional"
+
+    bindings:
+      - name: "reminder-cron"
+        type: "bindings.cron"
+        version: "v1"
+        metadata:
+          schedule: "*/1 * * * *"  # Every 1 minute
+          direction: "input"
+        scopes:
+          - "todo-backend"
+        description: "Cron trigger for reminder check job"
+
+    secrets:
+      - name: "kubernetes-secrets"
+        type: "secretstores.kubernetes"
+        version: "v1"
+        metadata:
+          versionId: "latest"
+        scopes:
+          - "todo-backend"
+        description: "Kubernetes secrets for credentials"
+        secrets_managed:
+          - DATABASE_URL
+          - KAFKA_BROKERS
+          - KAFKA_USERNAME
+          - KAFKA_PASSWORD
+          - OPENAI_API_KEY
+          - JWT_SECRET
+
+    service_invocation:
+      - app_id: "todo-backend"
+        app_protocol: "http"
+        app_port: "8000"
+        description: "Backend service with Dapr sidecar"
+        endpoints:
+          - path: "/api/v2/tasks"
+            method: "GET"
+            description: "List tasks with filters"
+          - path: "/api/v2/tasks"
+            method: "POST"
+            description: "Create task"
+          - path: "/api/v2/tasks/{id}"
+            method: "GET"
+            description: "Get task by ID"
+          - path: "/api/v2/tasks/{id}"
+            method: "PUT"
+            description: "Update task"
+          - path: "/api/v2/tasks/{id}"
+            method: "DELETE"
+            description: "Delete task"
+          - path: "/api/v2/tasks/{id}/complete"
+            method: "POST"
+            description: "Complete task"
+
+  deployment_annotations:
+    backend:
+      dapr.io/enabled: "true"
+      dapr.io/app-id: "todo-backend"
+      dapr.io/app-port: "8000"
+      dapr.io/app-protocol: "http"
+      dapr.io/enable-api-logging: "true"
+      dapr.io/log-level: "info"
+      dapr.io/sidecar-cpu-limit: "500m"
+      dapr.io/sidecar-memory-limit: "512Mi"
+      dapr.io/sidecar-cpu-request: "100m"
+      dapr.io/sidecar-memory-request: "128Mi"
+
+  configuration:
+    tracing:
+      samplingRate: "1"  # 100% sampling for hackathon (reduce in production)
+      zipkin:
+        endpointAddress: "http://zipkin:9411/api/v2/spans"
+
+    metrics:
+      enabled: true
+
+    mtls:
+      enabled: false  # Disable for local development, enable for production
+
+    accessControl:
+      defaultAction: "allow"
+      trustDomain: "public"
+
+  local_development:
+    dapr_init_command: "dapr init --kubernetes"
+    dapr_run_command: "dapr run --app-id todo-backend --app-port 8000 --dapr-http-port 3500 --components-path ./infra/dapr/components"
+
+  cloud_deployment:
+    helm_install: "helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update && helm install dapr dapr/dapr --namespace dapr-system --create-namespace --wait"
+
+  health_checks:
+    dapr_health_endpoint: "http://localhost:3500/v1.0/healthz"
+    dapr_metadata_endpoint: "http://localhost:3500/v1.0/metadata"
